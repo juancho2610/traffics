@@ -1,10 +1,12 @@
-from flask import Flask , request, jsonify, Response
+from flask import Flask , request, jsonify, Response , render_template
 from flask_pymongo import PyMongo
 from bson import json_util
 from bson import ObjectId
 
 app = Flask(__name__)
-app.config['MONGO_URI']='mongodb://localhost:27017/trafficProject'
+
+app.config['MONGO_URI']='mongodb+srv://juan:123@cluster0.3hzfhvm.mongodb.net/?retryWrites=true&w=majority'
+#mongodb+srv://juan:123@cluster0.3hzfhvm.mongodb.net/?retryWrites=true&w=majority
 
 mongo = PyMongo(app)
 
@@ -340,6 +342,5 @@ def delete_estadistica(id):
     response = jsonify({'mensaje': 'Estadística de Seguridad Vial ' + id + ' ha sido eliminada exitosamente.'})
     return response
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
