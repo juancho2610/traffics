@@ -1,73 +1,81 @@
-from flask import Flask, render_template, request, Response, jsonify, redirect, url_for
-import database as dbase  
-from usuario import Usuario
+from flask import Flask , request, jsonify, Response
+from flask_pymongo import PyMongo
+from bson import json_util
 from bson import ObjectId
 
-db = dbase.dbConnection()
-
 app = Flask(__name__)
+app.config['MONGO_URI']='mongodb://localhost:27017/trafficProject'
 
-#Rutas de la aplicación
-@app.route('/')
-def home():
-    users = db['Usuarios']
-    productsReceived = users.find()
-    return render_template('index.html', users = productsReceived)
+mongo = PyMongo(app)
 
-#Method Post
+############### USUARIOS ###############
+
 @app.route('/usuarios', methods=['POST'])
-def addUser():
-    users = db['Usuarios']
-    nombre = request.form['nombre']
-    edad = request.form['edad']
-    correo = request.form['correo']
+def create_user():
+    # Receiving data
+    nombre = request.json['nombre']
+    edad = request.json['edad']
+    correo = request.json['correo']
+    telefono = request.json['telefono']
+    direccion = request.json['direccion']
 
-    if nombre and edad and correo:
-        usuario = Usuario(nombre, edad, correo)
-        users.insert_one(usuario.toDBCollection())
-        response = jsonify({
-            'nombre' : nombre,
+    print(request.json)
+    
+    if nombre and edad and correo and telefono and direccion:
+        id = mongo.db.usuarios.insert_one(
+            {'nombre': nombre, 'edad' : edad, 'correo': correo, 'telefono': telefono, 'direccion': direccion}
+        )
+        response = {
+            'id': str(id),
+            'nombre': nombre,
             'edad' : edad,
-            'correo' : correo
-        })
-        return redirect(url_for('home'))
+            'correo': correo,
+            'telefono': telefono,
+            'direccion': direccion
+        }
+        return response
     else:
-        return notFound()
+        {'message': 'received'}
+    
+    return {'message': 'received'}
 
-#Method delete
-@app.route('/delete/<string:usuario_id>')
-def delete(usuario_id):
-    users = db['Usuarios']
-    users.delete_one({'_id' : ObjectId(usuario_id)})
-    return redirect(url_for('home'))
+@app.route('/usuarios', methods=['GET'])
+def get_users():
+    users = mongo.db.usuarios.find()
+    response = json_util.dumps(users)
+    return Response(response, mimetype='application/json')
 
-#Method Put
-@app.route('/edit/<string:usuario_id>', methods=['POST'])
-def edit(usuario_id):
-    users = db['Usuarios']
-    nombre = request.form['nombre']
-    edad = request.form['edad']
-    correo = request.form['correo']
+@app.route('/usuarios/<id>', methods=['GET'])
+def get_user(id):
+    usuario = mongo.db.usuarios.find_one({'_id': ObjectId(id)})
+    response = json_util.dumps(usuario)
+    return Response(response, mimetype="application/json")
 
-    if nombre and edad and correo:
-        users.update_one({'_id' : usuario_id}, {'$set' : {'nombre' : nombre, 'edad' : edad, 'correo' : correo}})
-        response = jsonify({'message' : 'Usuario ' + usuario_id + ' actualizado correctamente'})
-        return redirect(url_for('home'))
-    else:
-        return notFound()
-
-@app.errorhandler(404)
-def notFound(error=None):
-    message ={
-        'message': 'No encontrado ' + request.url,
-        'status': '404 Not Found'
-    }
-    response = jsonify(message)
-    response.status_code = 404
+@app.route('/usuarios/<id>', methods=['DELETE'])
+def delete_user(id):
+    mongo.db.usuarios.delete_one({'_id': ObjectId(id)})
+    response = jsonify({'mensaje': 'usuario' + id + 'ha sido eliminado exitosamente.'})
     return response
 
-####################################
-'''  
+@app.route('/usuarios/<id>', methods = ['PUT'])
+def update_user(id):
+    nombre = request.json['nombre']
+    edad = request.json['edad']
+    correo = request.json['correo']
+    telefono = request.json['telefono']
+    direccion = request.json['direccion']
+    
+    if nombre and edad and correo and telefono and direccion:
+        mongo.db.usuarios.update_one({'_id': ObjectId(id)}, {'$set': {
+            'nombre': nombre,
+            'edad': edad,
+            'correo': correo,
+            'telefono': telefono,
+            'direccion': direccion
+        }})
+        response = jsonify({'mensaje': 'usuario' + id + 'se actualizado correctamente'})
+        return response
+    
 ################ LOCALIDADES ###############
 
 @app.route('/localidades', methods=['POST'])
@@ -191,13 +199,13 @@ def registrar_situacion():
     nombre = request.json['nombre']
     tipo_actor_vial = request.json['tipo_actor_vial']
     direccion = {
-        'localidad': request.json['direccion']['localidad'],
-        'barrio': request.json['direccion']['barrio'],
-        'zona': request.json['direccion']['zona']
+        'localidad': request.json['localidad'],
+        'barrio': request.json['barrio'],
+        'zona': request.json['zona']
     }
     ubicacion = {
-        'latitud': float(request.json['ubicacion']['latitud']),
-        'longitud': float(request.json['ubicacion']['longitud'])
+        'latitud': request.json['latitud'],
+        'longitud': request.json['longitud']
     }
     existencia_senales = request.json.get('existencia_senales', False)
 
@@ -239,46 +247,29 @@ def get_situacion(id):
 
 @app.route('/situaciones/<id>', methods=['PUT'])
 def update_situacion(id):
-    nombre = request.json.get('nombre')
-    tipo_actor_vial = request.json.get('tipo_actor_vial')
-    
-    direccion = request.json.get('direccion')
-    if direccion:
-        localidad = direccion.get('localidad')
-        barrio = direccion.get('barrio')
-        zona = direccion.get('zona')
-    else:
-        localidad = barrio = zona = None
-    
-    ubicacion = request.json.get('ubicacion')
-    if ubicacion:
-        latitud = ubicacion.get('latitud')
-        longitud = ubicacion.get('longitud')
-    else:
-        latitud = longitud = None
-
+    nombre = request.json['nombre']
+    tipo_actor_vial = request.json['tipo_actor_vial']
+    direccion = {
+        'localidad': request.json['localidad'],
+        'barrio': request.json['barrio'],
+        'zona': request.json['zona']
+    }
+    ubicacion = {
+        'latitud': request.json['latitud'],
+        'longitud': request.json['longitud']
+    }
     existencia_senales = request.json.get('existencia_senales', False)
 
-    if nombre is not None and tipo_actor_vial is not None and (localidad is not None or barrio is not None or zona is not None) and (latitud is not None or longitud is not None):
+    if nombre and tipo_actor_vial and direccion and ubicacion:
         mongo.db.situaciones.update_one({'_id': ObjectId(id)}, {'$set': {
             'nombre': nombre,
             'tipo_actor_vial': tipo_actor_vial,
-            'direccion': {
-                'localidad': localidad,
-                'barrio': barrio,
-                'zona': zona
-            },
-            'ubicacion': {
-                'latitud': latitud,
-                'longitud': longitud
-            },
+            'direccion': direccion,
+            'ubicacion': ubicacion,
             'existencia_senales': existencia_senales
         }})
         response = jsonify({'mensaje': 'Situación de Riesgo ' + id + ' se actualizó correctamente'})
         return response
-    else:
-        return jsonify({'mensaje': 'Información incompleta'})
-
 
 @app.route('/situaciones/<id>', methods=['DELETE'])
 def delete_situacion(id):
@@ -347,7 +338,8 @@ def update_estadistica(id):
 def delete_estadistica(id):
     mongo.db.estadisticas.delete_one({'_id': ObjectId(id)})
     response = jsonify({'mensaje': 'Estadística de Seguridad Vial ' + id + ' ha sido eliminada exitosamente.'})
-    return response'''
-####################################
-if __name__ == '__main__':
-    app.run(debug=True, port=4000)
+    return response
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
