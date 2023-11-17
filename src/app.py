@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, Response, jsonify, redirect, url_for
 import database as dbase  
 from usuario import Usuario
-from bson import ObjectId
+from bson import ObjectId, json_util
 
 db = dbase.dbConnection()
 
@@ -18,9 +18,17 @@ def home():
 @app.route('/usuarios', methods=['POST'])
 def addUser():
     users = db['Usuarios']
-    nombre = request.form['nombre']
-    edad = request.form['edad']
-    correo = request.form['correo']
+    
+    if request.headers['Content-Type'] == 'application/json':
+        # Si la solicitud es JSON
+        nombre = request.json.get('nombre')
+        edad = request.json.get('edad')
+        correo = request.json.get('correo')
+    else:
+        # Si la solicitud es form data
+        nombre = request.form.get('nombre')
+        edad = request.form.get('edad')
+        correo = request.form.get('correo')
 
     if nombre and edad and correo:
         usuario = Usuario(nombre, edad, correo)
@@ -30,9 +38,21 @@ def addUser():
             'edad' : edad,
             'correo' : correo
         })
-        return redirect(url_for('home'))
+        return response
     else:
         return notFound()
+    
+#Method GET
+@app.route('/usuarios', methods=['GET'])
+def get_users():
+    users_cursor = db['Usuarios'].find()
+    print(users_cursor)
+    users_list = list(users_cursor)
+    print("users_list: ", users_list)
+    # Excluye el campo '_id' de cada usuario
+    for user in users_list:
+        user.pop('_id', None)
+    return jsonify({'usuarios': users_list})
 
 #Method delete
 @app.route('/delete/<string:usuario_id>')
@@ -350,4 +370,4 @@ def delete_estadistica(id):
     return response'''
 ####################################
 if __name__ == '__main__':
-    app.run(debug=True, port=4000)
+    app.run(debug=True, port=5000)
