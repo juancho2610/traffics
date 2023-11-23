@@ -9,6 +9,21 @@
 
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/index">Traffic Project</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/cerrar_sesion">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <div class="container">
         <h1 class="text-center mt-5 mb-5">Traffic Project</h1>
@@ -19,16 +34,22 @@
             <div class="col-md-6 mb-3">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="text-center">Registro</h5>
+                        <h5 class="text-center">Reportar</h5>
                     </div>
                     <div class="card-body">
-                        <form action="/usuarios" method="POST">
-                            <label>Nombre</label>
-                            <input type="text" class="form-control mb-3" name="nombre">
-                            <label>Edad</label>
-                            <input type="text" class="form-control mb-3" name="edad">
-                            <label>Correo</label>
-                            <input type="text" class="form-control mb-3" name="correo">
+                        <form action="/situaciones" method="POST">
+                            <label>Localidad</label>
+                            <input type="text" class="form-control mb-3" name="localidad">
+                            <label>Tipo de actor vial</label>
+                            <input type="text" class="form-control mb-3" name="tipo_actor_vial">
+                            <label>Direccion</label>
+                            <input type="text" class="form-control mb-3" name="direccion">
+                            <label>Latitud</label>
+                            <input type="text" class="form-control mb-3" name="latitud">
+                            <label>Longitud</label>
+                            <input type="text" class="form-control mb-3" name="longitud">
+                            <label>Existencia de señales</label>
+                            <input type="checkbox" class="form-check" name="existencia_senales"><br>
                             <button class="btn btn-primary" type="submit">Guardar</button>
                         </form>
                     </div>
@@ -38,23 +59,26 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="text-center">Usuarios</h5>
+                        <h5 class="text-center">Situaciones de riesgo</h5>
                     </div>
                     <div class="card-body">
                         <ul class="list-group">
                             <div class="row row-col-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-3">
-                                {% for user in users %}
+                                {% for situacion in situaciones %}
 
                                     <div class="col">
                                         <li class="list-group-item mb-3">
-                                            <form action="/edit/{{user.nombre}}" method="POST">
-                                                <input type="text" class="form-control" value="{{user.nombre}}" name="nombre">
-                                                <small>EDAD</small>
-                                                <input type="text" class="form-control" value="{{user.edad}}" name="edad">
-                                                <small>CORREO</small>
-                                                <input type="text" class="form-control" value="{{user.correo}}" name="correo">
+                                            <form action="/edit/{{situacion.localidad}}" method="POST">
+                                                <small>NOMBRE</small>
+                                                <input type="text" class="form-control" value="{{situacion.localidad}}" name="localidad">
+                                                <small>TIPO DE ACTOR VIAL</small>
+                                                <input type="text" class="form-control" value="{{situacion.tipo_actor_vial}}" name="tipo_actor_vial">
+                                                <small>DIRECCION</small>
+                                                <input type="text" class="form-control" value="{{situacion.direccion}}" name="direccion">
+                                                <small>EXISTENCIA DE SEÑALES</small>
+                                                <input type="text" class="form-control" value="{{situacion.existencia_senales}}" name="existencia_senales">
                                                 <button class="btn btn-primary btn-sm mt-3" type="submit">Editar</button>
-                                                <a href="{{ url_for('delete', usuario_id=user._id) }}" class="btn btn-danger btn-sm mt-3">Eliminar</a>
+                                                <a href="{{ url_for('delete', usuario_id=situacion._id) }}" class="btn btn-danger btn-sm mt-3">Eliminar</a>
 
                                             </form>
                                         </li>
