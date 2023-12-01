@@ -9,21 +9,54 @@
 
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-            <a class="navbar-brand" href="/index">Traffic Project</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/cerrar_sesion">Cerrar Sesión</a>
-                    </li>
-                </ul>
+    <style>
+        img {
+            width: 100%;
+            max-height: 180px;
+            object-fit: contain;
+        }
+    </style>
+    <script>
+        function showFuncional() {
+            var checkbox = document.getElementById('existenciaCheckbox');
+            var campoSenalFuncional = document.getElementById('campoSenalFuncional');
+    
+            campoSenalFuncional.style.display = checkbox.checked ? 'block' : 'none';
+        }
+        function showCampos() {
+            var checkbox = document.getElementById('funcionalCheckbox');
+            var camposPropuestos = document.getElementById('camposPropuestos');
+    
+            camposPropuestos.style.display = checkbox.checked ? 'none' : 'block';
+        }
+    </script>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/index">Traffic Project</a>
+        
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav mr-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/mapa">Mapa</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/senal">Señales</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/localidad">Localidades</a>
+                        </li>
+                    </ul>
+                </div>
+        
+                <div class="ml-auto">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/cerrar_sesion">Cerrar Sesión</a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
     <div class="container">
         <h1 class="text-center mt-5 mb-5">Traffic Project</h1>
@@ -39,8 +72,16 @@
                     <div class="card-body">
                         <form action="/situaciones" method="POST">
                             <label>Localidad</label>
-                            <input type="text" class="form-control mb-3" name="localidad">
-                            <label>Tipo de actor vial</label>
+                            <select class="form-select" name="localidad" id="localidad" required>
+                                {% for loc in localidades %}
+                                    <option value="{{ loc.nombre }}">{{ loc.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                            <label>Barrio</label>
+                            <input type="text" class="form-control mb-3" name="barrio">
+                            <label>Descripcion</label>
+                            <input type="text" class="form-control mb-3" name="descripcion">
+                            <label>Tipo actor vial</label>
                             <input type="text" class="form-control mb-3" name="tipo_actor_vial">
                             <label>Direccion</label>
                             <input type="text" class="form-control mb-3" name="direccion">
@@ -49,7 +90,25 @@
                             <label>Longitud</label>
                             <input type="text" class="form-control mb-3" name="longitud">
                             <label>Existencia de señales</label>
-                            <input type="checkbox" class="form-check" name="existencia_senales"><br>
+                            <input type="checkbox" class="form-check" id="existenciaCheckbox" name="existencia_senales" onchange="showFuncional()">
+                            <div id="campoSenalFuncional" style="display: none;">
+                                <label>¿La señal es funcional?</label>
+                                <input type="checkbox" class="form-check" id="funcionalCheckbox" name="funcional" checked onchange="showCampos()">
+
+                                <div id="camposPropuestos" style="display: none;">
+                                    <label>Señal Propuesta</label>
+                                    <select class="form-control mb-3" name="localidad" id="localidad" required>
+                                        {% for sen in senales %}
+                                            <option value="{{ sen.nombre }}">{{ sen.nombre }}</option>
+                                        {% endfor %}
+                                    </select><br>
+
+                                    <label>Argumento</label>
+                                    <input type="text" class="form-control mb-3" name="argumento">
+                                </div>
+                            </div>
+                            <br>
+
                             <button class="btn btn-primary" type="submit">Guardar</button>
                         </form>
                     </div>
@@ -68,8 +127,8 @@
 
                                     <div class="col">
                                         <li class="list-group-item mb-3">
-                                            <form action="/edit/{{situacion.localidad}}" method="POST">
-                                                <small>NOMBRE</small>
+                                            <form action="{{ url_for('update_delete_situacion', id=situacion._id) }}" method="POST">
+                                                <small>LOCALIDAD</small>
                                                 <input type="text" class="form-control" value="{{situacion.localidad}}" name="localidad">
                                                 <small>TIPO DE ACTOR VIAL</small>
                                                 <input type="text" class="form-control" value="{{situacion.tipo_actor_vial}}" name="tipo_actor_vial">
@@ -77,9 +136,9 @@
                                                 <input type="text" class="form-control" value="{{situacion.direccion}}" name="direccion">
                                                 <small>EXISTENCIA DE SEÑALES</small>
                                                 <input type="text" class="form-control" value="{{situacion.existencia_senales}}" name="existencia_senales">
-                                                <button class="btn btn-primary btn-sm mt-3" type="submit">Editar</button>
-                                                <a href="{{ url_for('delete', usuario_id=situacion._id) }}" class="btn btn-danger btn-sm mt-3">Eliminar</a>
-
+                                                <button class="btn btn-primary btn-sm mt-3" type="submit" name="action" value="get">Ver Mas</button><br>
+                                                <button class="btn btn-primary btn-sm mt-3" type="submit" name="action" value="edit">Editar</button>
+                                                <button class="btn btn-danger btn-sm mt-3" type="submit" name="action" value="delete" onclick="return confirm('¿Estás seguro de que deseas eliminar esto?');">Eliminar</button>
                                             </form>
                                         </li>
                                     </div>
@@ -91,6 +150,9 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div class="col-md-8 position-relative">
+        <img src="{{ url_for('static', filename='logouni.png') }}" alt="Logouni">
     </div>
     
 </body>

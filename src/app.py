@@ -1,13 +1,16 @@
-from functools import wraps
-from flask import Flask, render_template, request, Response, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, Response, jsonify, redirect, url_for, session, flash
 import database as dbase  
 from usuario import Usuario
 from bson import ObjectId, json_util
+from datetime import datetime
+from functools import wraps
 
 db = dbase.dbConnection()
 
 app = Flask(__name__)
-app.secret_key ="SoloGamers@123"
+app.secret_key ="SECRET_KEY"
+
+app.static_folder = 'static'
 
 # Función para verificar si el usuario está autenticado
 def verificar_autenticacion(f):
@@ -27,9 +30,11 @@ def home():
 @app.route('/index')
 @verificar_autenticacion
 def index():
-    users = db['Situaciones']
-    situacionesReceived = users.find()
-    return render_template('index.html', situaciones=situacionesReceived)
+    con_situaciones = db['Situaciones']
+    situacionesReceived = con_situaciones.find()
+    localidades = db['Localidades'].find({}, {'nombre': 1})
+    senales = db['Senales'].find({}, {'nombre': 1})
+    return render_template('index.html', situaciones=situacionesReceived, situacion=None, localidades=localidades, senales=senales)
 
 @app.route('/registro')
 def registro():
@@ -40,11 +45,9 @@ def registro():
 def login():
     users = db['Usuarios']
     nombre = request.form['nombre']
-    print("nombre:",nombre)
     correo = request.form['correo']
-    print(correo)
     password = request.form['password']
-    print(password)
+
 
     # Verificar las credenciales del usuario en la base de datos
     us = users.find_one({'nombre': nombre, 'correo': correo, 'password': password})
@@ -138,23 +141,30 @@ def edit(usuario_id):
 @app.route('/localidades', methods=['POST'])
 def create_localidad():
     localidades = db['Localidades']
-    codigo = request.json['codigo']
-    descripcion = request.json['descripcion']
-    ubicacion = request.json['ubicacion']
+    
+    nombre = request.form['nombre']
+    codigo = request.form['codigo']
+    ubicacion = request.form['ubicacion']
 
-    if codigo and descripcion and ubicacion:
-        id = localidades.insert_one(
-            {'codigo': codigo, 'descripcion': descripcion, 'ubicacion': ubicacion}
-        )
-        response = {
-            'id': str(id),
+    if nombre and codigo and ubicacion:
+        localidad_data = {
+            'nombre': nombre,
             'codigo': codigo,
-            'descripcion': descripcion,
             'ubicacion': ubicacion
         }
-        return response
+
+        id = localidades.insert_one(localidad_data)
+        
+        response = {
+            'id': str(id),
+            'nombre': nombre,
+            'codigo': codigo,
+            'ubicacion': ubicacion
+        }
+        
+        return redirect(url_for('localidad'))
     else:
-        return {'message': 'Información incompleta'}
+        return jsonify({'message': 'Información incompleta'})
 
 
 @app.route('/localidades', methods=['GET'])
@@ -176,14 +186,14 @@ def get_localidad(id):
 @app.route('/localidades/<id>', methods=['PUT'])
 def update_localidad(id):
     localidades = db['Localidades']
+    nombre = request.json['nombre']
     codigo = request.json['codigo']
-    descripcion = request.json['descripcion']
     ubicacion = request.json['ubicacion']
 
-    if codigo and descripcion and ubicacion:
+    if codigo and ubicacion:
         localidades.update_one({'_id': ObjectId(id)}, {'$set': {
+            'nombre' : nombre,
             'codigo': codigo,
-            'descripcion': descripcion,
             'ubicacion': ubicacion
         }})
         response = jsonify({'mensaje': 'Localidad ' + id + ' se actualizó correctamente'})
@@ -201,13 +211,14 @@ def delete_localidad(id):
 ########### Señales de Tránsito ###############
 @app.route('/senales', methods=['POST'])
 def create_senal():
-    localidades = db['Localidades']
-    nombre = request.json['nombre']
-    descripcion = request.json['descripcion']
-    aplicacion = request.json['aplicacion']
+    nombre = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    aplicacion = request.form.get('aplicacion')
 
     if nombre and descripcion and aplicacion:
-        id = localidades.insert_one(
+        # Aquí deberías insertar en la colección de señales, no en localidades
+        senales = db['Senales']
+        id = senales.insert_one(
             {'nombre': nombre, 'descripcion': descripcion, 'aplicacion': aplicacion}
         )
         response = {
@@ -216,7 +227,7 @@ def create_senal():
             'descripcion': descripcion,
             'aplicacion': aplicacion
         }
-        return response
+        return redirect(url_for('senal'))
     else:
         return {'message': 'Información incompleta'}
 
@@ -261,6 +272,7 @@ def delete_senal(id):
     return response
 
 ############### Situaciones de Riesgo #################
+#method post (agregar)
 @app.route('/situaciones', methods=['POST'])
 def registrar_situacion():
     situaciones = db['Situaciones']
@@ -269,6 +281,9 @@ def registrar_situacion():
     if request.headers['Content-Type'] == 'application/json':
         # Si la solicitud es JSON, se mantiene la lógica anterior
         localidad = request.json['localidad']
+        barrio = request.json['barrio']
+        descripcion = request.json['descripcion']
+        fecha = request.json['fecho']
         tipo_actor_vial = request.json['tipo_actor_vial']
         direccion = request.json['direccion']
         ubicacion = {
@@ -276,107 +291,159 @@ def registrar_situacion():
             'longitud': float(request.json['ubicacion']['longitud'])
         }
         existencia_senales = request.json.get('existencia_senales', False)
+        funcional = request.json.get('funcional', False)
+        senal_propuesta = request.json.get('senal_propuesta', None)
+        argumento = request.json.get('argumento', None)
         response = {
             'id': str(id),
             'localidad': localidad,
+            'barrio' : barrio,
+            'descripcion' : descripcion,
+            'fecha' : fecha,
             'tipo_actor_vial': tipo_actor_vial,
             'direccion': direccion,
-            'ubicacion': ubicacion,
-            'existencia_senales': existencia_senales
+            'ubicacion' : ubicacion,
+            'existencia_senales': existencia_senales,
+            'funcional' : funcional,
+            'senal_propuesta': senal_propuesta,
+            'argumento': argumento
         }
         return response
     ######### FORM ##########
     else:
         # Si la solicitud es form data, se adaptan los campos del formulario HTML
-        localidad = request.form['localidad']
-        tipo_actor_vial = request.form['tipo_actor_vial']
-        direccion = request.form['direccion']
+        localidad = request.form.get('localidad')
+        barrio = request.form.get('barrio')
+        descripcion = request.form.get('descripcion')
+        fecha = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        tipo_actor_vial = request.form.get('tipo_actor_vial')
+        direccion = request.form.get('direccion')
         ubicacion = {
             'latitud': float(request.form['latitud']),
             'longitud': float(request.form['longitud'])
         }
+        existencia_senales = request.form.get('existencia_senales')
+        funcional = None
+        senal_propuesta = None
+        argumento = None
+
         existencia_senales = request.form.get('existencia_senales', False)
 
-        if localidad and tipo_actor_vial and direccion and ubicacion:
+        if funcional == 'False':
+            senal_propuesta = request.form.get('senal_propuesta')
+            argumento = request.form.get('argumento')
+
+        if localidad is not None and barrio is not None and descripcion is not None and fecha is not None and tipo_actor_vial is not None and direccion is not None and ubicacion is not None and existencia_senales is not None:
+            # Actualiza el documento en la base de datos
             id = situaciones.insert_one(
-                {
-                    'localidad': localidad,
-                    'tipo_actor_vial': tipo_actor_vial,
-                    'direccion': direccion,
-                    'ubicacion': ubicacion,
-                    'existencia_senales': existencia_senales
-                }
-            )
-            return redirect(url_for('index'))  # Redirige al index después de la inserción exitosa
+            {
+                'localidad': localidad,
+                'barrio' : barrio,
+                'descripcion' : descripcion,
+                'fecha' : fecha,
+                'tipo_actor_vial': tipo_actor_vial,
+                'direccion': direccion,
+                'ubicacion' : ubicacion,
+                'existencia_senales': existencia_senales,
+                'funcional' : funcional,
+                'senal_propuesta': senal_propuesta,
+                'argumento': argumento
+            })
+            return redirect(url_for('index'))
         else:
-            return {'message': 'Información incompleta'}
+            return flash('Información incompleta, Por favor llena todos los campos')
+        
 
-
+#method get situaciones
 @app.route('/situaciones', methods=['GET'])
 def get_situaciones():
-    situaciones = db['Situaciones']
-    situaciones_get = situaciones.find()
-    response = json_util.dumps(situaciones_get)
+    situaciones= db['Situaciones']
+    situaciones = situaciones.find()
+    response = json_util.dumps(situaciones)
     return Response(response, mimetype='application/json')
 
 
+'''
+#method get situacion
 @app.route('/situaciones/<id>', methods=['GET'])
 def get_situacion(id):
     situaciones = db['Situaciones']
     situaciones_get = situaciones.find_one({'_id': ObjectId(id)})
-    response = json_util.dumps(situaciones_get)
-    return Response(response, mimetype="application/json")
+    ####### POSTMAN #######
+    if request.headers['Content-Type'] == 'application/json':
+        response = json_util.dumps(situaciones_get)
+        return Response(response, mimetype="application/json")
+    ######### FORM  ##########
+    else:
+        return render_template('detalle_situacion.html', situacion=situaciones_get)
 
+#method put situaciones
 @app.route('/situaciones/<id>', methods=['PUT'])
 def update_situacion(id):
-    nombre = request.json.get('nombre')
-    tipo_actor_vial = request.json.get('tipo_actor_vial')
-    
-    direccion = request.json.get('direccion')
-    if direccion:
-        localidad = direccion.get('localidad')
-        barrio = direccion.get('barrio')
-        zona = direccion.get('zona')
-    else:
-        localidad = barrio = zona = None
-    
-    ubicacion = request.json.get('ubicacion')
-    if ubicacion:
-        latitud = ubicacion.get('latitud')
-        longitud = ubicacion.get('longitud')
-    else:
-        latitud = longitud = None
+    situaciones = db['Situaciones']
 
-    existencia_senales = request.json.get('existencia_senales', False)
+    localidad = request.form.get('localidad')
+    tipo_actor_vial = request.form.get('tipo_actor_vial')
+    direccion = request.form.get('direccion')
+    existencia_senales = request.form.get('existencia_senales')
 
-    if nombre is not None and tipo_actor_vial is not None and (localidad is not None or barrio is not None or zona is not None) and (latitud is not None or longitud is not None):
-        situaciones = db['Situaciones']
+    if localidad is not None and tipo_actor_vial is not None:
+        # Actualiza el documento en la base de datos
         situaciones.update_one({'_id': ObjectId(id)}, {'$set': {
-            'nombre': nombre,
+            'localidad': localidad,
             'tipo_actor_vial': tipo_actor_vial,
-            'direccion': {
-                'localidad': localidad,
-                'barrio': barrio,
-                'zona': zona
-            },
-            'ubicacion': {
-                'latitud': latitud,
-                'longitud': longitud
-            },
+            'direccion': direccion,
             'existencia_senales': existencia_senales
         }})
-        response = jsonify({'mensaje': 'Situación de Riesgo ' + id + ' se actualizó correctamente'})
-        return response
-    else:
-        return jsonify({'mensaje': 'Información incompleta'})
 
+        return redirect(url_for('index'))
 
-@app.route('/situaciones/<id>', methods=['DELETE'])
-def delete_situacion(id):
-    situaciones = db['Situaciones']
-    situaciones.delete_one({'_id': ObjectId(id)})
-    response = jsonify({'mensaje': 'Situación de Riesgo ' + id + ' ha sido eliminada exitosamente.'})
-    return response
+    return jsonify({'mensaje': 'Información incompleta'})
+'''
+
+# Update and delete situation
+@app.route('/situaciones/<id>', methods=['POST'])
+def update_delete_situacion(id):
+    if request.form['action'] == 'edit':
+        situaciones = db['Situaciones']
+
+        localidad = request.form.get('localidad')
+        barrio = request.form.get('barrio')
+        descripcion = request.form.get('descripcion')
+        fecha = datetime.now()
+        tipo_actor_vial = request.form.get('tipo_actor_vial')
+        direccion = request.form.get('direccion')
+        existencia_senales = request.form.get('existencia_senales')
+        funcional = request.form.get('funcional')
+        senal_propuesta = None
+        argumento = None
+
+        if funcional == 'False':
+            senal_propuesta = request.form.get('senal_propuesta')
+            argumento = request.form.get('argumento')
+        if localidad is not None and barrio is not None and descripcion is not None and fecha is not None and tipo_actor_vial is not None and direccion is not None and existencia_senales is not None:
+            # Actualiza el documento en la base de datos
+            situaciones.update_one({'_id': ObjectId(id)}, {'$set': {
+                'localidad': localidad,
+                'barrio' : barrio,
+                'descripcion' : descripcion,
+                'fecha' : fecha,
+                'tipo_actor_vial': tipo_actor_vial,
+                'direccion': direccion,
+                'existencia_senales': existencia_senales,
+                'funcional' : funcional,
+                'senal_propuesta': senal_propuesta,
+                'argumento': argumento
+            }})
+    elif request.form['action'] == 'delete':
+        situaciones = db['Situaciones']
+        situaciones.delete_one({'_id': ObjectId(id)})
+    elif request.form['action'] == 'get':
+        situaciones = db['Situaciones']
+        situaciones_get = situaciones.find_one({'_id': ObjectId(id)})
+        return render_template('detalle_situacion.html', situacion=situaciones_get)
+
+    return redirect(url_for('index'))
 
 ########## Estadísticas de Seguridad Vial ################
 @app.route('/estadisticas', methods=['POST'])
@@ -446,10 +513,29 @@ def delete_estadistica(id):
     response = jsonify({'mensaje': 'Estadística de Seguridad Vial ' + id + ' ha sido eliminada exitosamente.'})
     return response
 
+@app.route('/senal')
+@verificar_autenticacion
+def senal():
+    con_senal= db['Senales']
+    senalesReceived = con_senal.find()
+    return render_template('senales.html', senales=senalesReceived)
+
+@app.route('/localidad')
+@verificar_autenticacion
+def localidad():
+    con_localidades= db['Localidades']
+    localidadesReceived = con_localidades.find()
+    return render_template('localidades.html', localidades=localidadesReceived)
+
+@app.route('/mapa')
+@verificar_autenticacion
+def mapa():
+    return render_template('mapa.html')
+
 @app.route('/cerrar_sesion')
 def cerrar_sesion():
     session.pop('us', None)
-    return redirect(url_for('home')) 
+    return redirect(url_for('home'))
 
 @app.errorhandler(404)
 def notFound(error=None):

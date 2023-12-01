@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles de la Situación</title>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mt-5 mb-5">Detalles de la Situación</h1>
+        <ul class="list-group">
+            <li class="list-group-item"><strong>Localidad:</strong> {{ situacion.localidad }}</li>
+            <li class="list-group-item"><strong>Barrio:</strong> {{ situacion.barrio }}</li>
+            <li class="list-group-item"><strong>Descripcion:</strong> {{ situacion.descripcion }}</li>
+            <li class="list-group-item"><strong>Fecha:</strong> {{ situacion.fecha }}</li>
+            <li class="list-group-item"><strong>Tipo de Actor Vial:</strong> {{ situacion.tipo_actor_vial }}</li>
+            <li class="list-group-item"><strong>Dirección:</strong> {{ situacion.direccion }}</li>
+            <li class="list-group-item"><strong>Latitud:</strong> {{ situacion.ubicacion.latitud }}</li>
+            <li class="list-group-item"><strong>Longitud:</strong> {{ situacion.ubicacion.longitud }}</li>
+            <li class="list-group-item"><strong>Existencia de Señales:</strong> {{ situacion.existencia_senales }}</li>
+            {% if situacion.funcional is defined %}
+            <li class="list-group-item"><strong>Funcional:</strong> {% if situacion.funcional %}Sí{% else %}No{% endif %}</li>
+            {% endif %}
+
+            {% if situacion.funcional is defined and situacion.funcional == "False" %}
+            <li class="list-group-item"><strong>Señal Propuesta:</strong> {{ situacion.senal_propuesta }}</li>
+            <li class="list-group-item"><strong>Argumento:</strong> {{ situacion.argumento }}</li>
+            {% endif %}
+
+        </ul>
+    </div>
+</body>
+</html>

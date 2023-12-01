@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArquitecturasTIC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+</head>
+<body>
+    <style>
+        img {
+            width: 100%;
+            max-height: 180px;
+            object-fit: contain;
+        }
+    </style>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/index">Traffic Project</a>
+    
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/mapa">Mapa</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/senal">Señales</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/localidad">Localidades</a>
+                    </li>
+                </ul>
+            </div>
+    
+            <div class="ml-auto">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/cerrar_sesion">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="text-center mt-5 mb-5">Traffic Project</h1>
+    </div>
+
+    <div class="container text-center mt-5">
+        <div class="col-md-6 d-inline-block">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="text-center">Localidades</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for localidad in localidades %}
+                            <li class="list-group-item">
+                                <strong>Nombre:</strong> {{ localidad.nombre }}<br>
+                                <strong>Código:</strong> {{ localidad.codigo }}<br>
+                                <strong>Ubicación:</strong> {{ localidad.ubicacion }}<br>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container text-center mt-5">
+        <div class="col-md-6 d-inline-block">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="text-center">Agregar Nueva Localidad</h5>
+                </div>
+                <div class="card-body">
+                    <form action="/localidades" method="POST">
+                        <div class="mb-3">
+                            <label for="codigo">Nombre:</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="codigo">Código:</label>
+                            <input type="text" class="form-control" id="codigo" name="codigo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ubicacion">Ubicación:</label>
+                            <input type="text" class="form-control" id="ubicacion" name="ubicacion" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="align-items-center">
+        <img src="{{ url_for('static', filename='logouni.png') }}" alt="Logouni">
+    </div>
+</body>
+</html>

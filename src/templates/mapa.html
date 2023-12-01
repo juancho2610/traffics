@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArquitecturasTIC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.js"
+        integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/index">Traffic Project</a>
+    
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/mapa">Mapa</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/senal">Señales</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/localidad">Localidades</a>
+                    </li>
+                </ul>
+            </div>
+    
+            <div class="ml-auto">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/cerrar_sesion">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h1 class="text-center mt-5 mb-5">Traffic Project</h1>
+    </div>
+    <script>
+        $(document).ready(function () {
+            $.ajax({
+                url: "/situaciones",
+                method: 'GET',
+                success: function (data) {
+                    console.log(data);
+                    initMap(data);
+                }
+            });
+        });
+    
+        function initMap(data) {
+            const map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 4.6552604747510795, lng: -74.10095295793417 },
+                zoom: 12
+            });
+
+            const markers = data?.map((situacion) => {
+                const marker = new google.maps.Marker({
+                    position: { lat: parseFloat(situacion.ubicacion.latitud), lng: parseFloat(situacion.ubicacion.longitud) },
+                    map: map,
+                    title: situacion.direccion,
+                    icon: "{{ url_for('static', filename='critico.png') }}"
+                });
+
+                // Agregar evento click al marcador
+                marker.addListener("click", function () {
+                    // Obtener la fecha como cadena de texto en un formato personalizado
+                    const fechaFormateada = situacion.fecha ? formatDate(new Date(situacion.fecha)) : 'No especificada';
+                    // Crear contenido para la ventana de información
+                    const infoWindowContent = `
+                        <h5>${situacion.direccion}</h5>
+                        <p>Localidad: ${situacion.localidad}</p>
+                        <p>Barrio: ${situacion.barrio}</p>
+                        <p>Descripcion: ${situacion.descripcion}</p>
+                        <p>Fecha de reporte: ${fechaFormateada}</p>
+                        <p>Tipo de Actor Vial: ${situacion.tipo_actor_vial}</p>
+                        <p>Existencia de Señales: ${situacion.existencia_senales ? 'Sí' : 'No'}</p>
+                        <p>Funcional: ${situacion.funcional !== null && situacion.funcional !== undefined ? (situacion.funcional ? 'Sí' : 'No') : 'No especificado'}</p>
+                        <p>Señal Propuesta: ${situacion.senal_propuesta !== null && situacion.senal_propuesta !== undefined ? situacion.senal_propuesta : 'No especificado'}</p>
+                        <p>Argumento: ${situacion.argumento !== null && situacion.argumento !== undefined ? situacion.argumento : 'No especificado'}</p>
+                    `;
+
+                    // Crear una ventana de información
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: infoWindowContent
+                    });
+
+                    // Función para formatear la fecha en un formato personalizado
+                    function formatDate(date) {
+                        const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short' };
+                        return date.toLocaleDateString('es-CO', options);
+                    }
+
+                    // Abrir la ventana de información al hacer clic en el marcador
+                    infoWindow.open(map, marker);
+                });
+
+                return marker;
+            });
+        }
+  
+        window.initMap = initMap;
+    </script>
+
+    <div class="mapholder">
+        <!-- Agrega un contenedor para el mapa -->
+        <div id="map" style="height: 70vh;"></div>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key={{API_KEY}}&callback=initMap&v=weekly" defer></script>
+</body>
+</html>
